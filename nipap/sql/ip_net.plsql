@@ -256,3 +256,71 @@ CREATE INDEX ip_net_log__vrf__index ON ip_net_log(vrf_id);
 CREATE INDEX ip_net_log__prefix__index ON ip_net_log(prefix_id);
 CREATE INDEX ip_net_log__pool__index ON ip_net_log(pool_id);
 
+--
+-- This is where we store l2 domains
+--
+CREATE TABLE l2_domain (
+	id SERIAL PRIMARY KEY,
+	segment_min INTEGER NOT NULL,
+	segment_max INTEGER NOT NULL,
+	name TEXT NOT NULL,
+	description TEXT,
+	total_segments numeric(40) NOT NULL DEFAULT 0,
+	free_segments numeric(40) NOT NULL DEFAULT 0,
+	used_segments numeric(40) NOT NULL DEFAULT 0,
+	tags TEXT[] default '{}',
+	avps HSTORE NOT NULL default ''
+);
+
+COMMENT ON TABLE l2_domain IS 'Layer 2 domains';
+COMMENT ON COLUMN l2_domain.segment_min IS 'Lowest usable segment id';
+COMMENT ON COLUMN l2_domain.segment_max IS 'Highest possible segment id';
+COMMENT ON COLUMN l2_domain.name IS 'Layer 2 domain name';
+COMMENT ON COLUMN l2_domain.description IS 'Layer 2 domain description';
+COMMENT ON COLUMN l2_domain.total_segments IS 'Number of allocatable segments in domain';
+COMMENT ON COLUMN l2_domain.free_segments IS 'Number of unallocated segments in domain';
+COMMENT ON COLUMN l2_domain.used_segments IS 'Number of allocated segments in domain';
+COMMENT ON COLUMN l2_domain.tags IS 'Tags associated with this layer 2 domain';
+
+--
+-- This is where we store the actual l2 segment id allocations.
+--
+CREATE TABLE l2_domain_segment (
+	id SERIAL PRIMARY KEY,
+	domain_id INTEGER NOT NULL REFERENCES l2_domain (id) ON UPDATE CASCADE ON DELETE CASCADE,
+	segment_id INTEGER NOT NULL,
+	name TEXT NOT NULL,
+	description TEXT,
+	tags TEXT[] default '{}',
+	avps HSTORE NOT NULL DEFAULT ''
+);
+
+COMMENT ON TABLE l2_domain_segment IS 'Layer 2 segment allocations';
+COMMENT ON COLUMN l2_domain_segment.domain_id IS 'Layer 2 domain from which segment was allocated';
+COMMENT ON COLUMN l2_domain_segment.name IS 'Layer 2 segment name';
+COMMENT ON COLUMN l2_domain_segment.description IS 'Layer 2 segment description';
+COMMENT ON COLUMN l2_domain_segment.tags IS 'Tags associated with this layer 2 segment';
+
+---
+--- This is where we store the l2 segment pools
+---
+CREATE TABLE l2_domain_pool (
+	id SERIAL PRIMARY KEY
+	domain_id INTEGER NOT NULL REFERENCES l2_domain(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	name TEXT NOT NULL,
+	description TEXT,
+	total_segments numeric(40) NOT NULL DEFAULT 0,
+	free_segments numeric(40) NOT NULL DEFAULT 0,
+	used_segments numeric(40) NOT NULL DEFAULT 0,
+	tags TEXT[] default '{}',
+	avps HSTORE NOT NULL default ''
+);
+
+COMMENT ON TABLE l2_domain_pool IS 'Layer 2 segment pool';
+COMMENT ON COLUMN l2_domain_pool.domain_id IS 'Layer 2 domain from which to allocate segments';
+COMMENT ON COLUMN l2_domain_pool.name IS 'Layer 2 segment pool name';
+COMMENT ON COLUMN l2_domain_pool.description IS 'Layer 2 segment pool description';
+COMMENT ON COLUMN l2_domain.total_segments IS 'Number of allocatable segments in pool';
+COMMENT ON COLUMN l2_domain.free_segments IS 'Number of unallocated segments in pool';
+COMMENT ON COLUMN l2_domain.used_segments IS 'Number of allocated segments in pool';
+COMMENT ON COLUMN l2_domain.tags IS 'Tags associated with this layer 2 segment pool';
